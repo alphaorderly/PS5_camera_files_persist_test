@@ -25,24 +25,12 @@ jobs:
           arch: x64
 
       - name: Build PS5CameraService
-        run: |
-          cl.exe /EHsc /std:c++17 /MD ^
-          /I"source" ^
-          /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" ^
-          source/PS5CameraService.cpp source/OrbisEyeCam.cpp ^
-          /link kernel32.lib user32.lib setupapi.lib winusb.lib advapi32.lib ^
-          /SUBSYSTEM:CONSOLE ^
-          /OUT:PS5CameraService.exe
+        shell: cmd
+        run: cl.exe /EHsc /std:c++17 /MD /I"source" /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" source/PS5CameraService.cpp source/OrbisEyeCam.cpp /link kernel32.lib user32.lib setupapi.lib winusb.lib advapi32.lib /SUBSYSTEM:CONSOLE /OUT:PS5CameraService.exe
 
       - name: Build PS5CameraLoader
-        run: |
-          cl.exe /EHsc /std:c++17 /MD ^
-          /I"source" ^
-          /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" ^
-          source/main.cpp source/OrbisEyeCam.cpp ^
-          /link kernel32.lib user32.lib setupapi.lib winusb.lib ^
-          /SUBSYSTEM:CONSOLE ^
-          /OUT:PS5CameraLoader.exe
+        shell: cmd
+        run: cl.exe /EHsc /std:c++17 /MD /I"source" /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" source/main.cpp source/OrbisEyeCam.cpp /link kernel32.lib user32.lib setupapi.lib winusb.lib /SUBSYSTEM:CONSOLE /OUT:PS5CameraLoader.exe
 
       - name: Copy artifacts to build folder
         run: |
