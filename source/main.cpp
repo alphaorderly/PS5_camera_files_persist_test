@@ -12,7 +12,7 @@ std::string getCurrentFirmwarePath()
 	_getcwd(buff, FILENAME_MAX);
 	std::string currentDir(buff);
 	
-	 currentDir.append(std::string("\\firmware.bin"));
+	 currentDir.append(std::string("\\firmware_discord_and_gamma_fix.bin"));
 	 return currentDir;
 }
 
@@ -38,6 +38,7 @@ Routine description:
 
 
 	std::vector<OrbisEyeCam::OrbisEyeCamRef> devices(OrbisEyeCam::getDevices());
+
 	if (devices.size() == 1)
 	{
 		eye = devices.at(0);
