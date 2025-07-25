@@ -1,0 +1,184 @@
+name: Build PS5 Camera Service
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup Visual Studio Dev Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build PS5CameraService
+        shell: cmd
+        run: cl.exe /EHsc /std:c++17 /MD /I"source" /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" source/PS5CameraService.cpp source/OrbisEyeCam.cpp /link kernel32.lib user32.lib setupapi.lib winusb.lib advapi32.lib /SUBSYSTEM:CONSOLE /OUT:PS5CameraService.exe
+
+      - name: Build PS5CameraLoader
+        shell: cmd
+        run: cl.exe /EHsc /std:c++17 /MD /I"source" /D"WIN32" /D"_WINDOWS" /D"UNICODE" /D"_UNICODE" source/main.cpp source/OrbisEyeCam.cpp /link kernel32.lib user32.lib setupapi.lib winusb.lib /SUBSYSTEM:CONSOLE /OUT:PS5CameraLoader.exe
+
+      - name: Copy artifacts to build folder
+        shell: cmd
+        run: |
+          mkdir build
+          mkdir build\release-package
+          copy "PS5CameraService.exe" "build\release-package\"
+          copy "PS5CameraLoader.exe" "build\release-package\"
+          copy "firmware_discord_and_gamma_fix.bin" "build\release-package\"
+
+      - name: Create install.bat
+        shell: cmd
+        run: |
+          (
+          echo @echo off
+          echo echo Installing PS5 Camera Auto-Loader Service...
+          echo.
+          echo REM Check for admin rights
+          echo net session ^>nul 2^>^&1
+          echo if %%errorLevel%% == 0 ^(
+          echo     echo Administrative privileges confirmed.
+          echo ^) else ^(
+          echo     echo This installer requires administrative privileges.
+          echo     echo Please run as administrator.
+          echo     pause
+          echo     exit /b 1
+          echo ^)
+          echo.
+          echo REM Stop existing service if running
+          echo sc stop PS5CameraService ^>nul 2^>^&1
+          echo sc delete PS5CameraService ^>nul 2^>^&1
+          echo.
+          echo REM Create service directory
+          echo mkdir "%%PROGRAMFILES%%\PS5CameraService" 2^>nul
+          echo.
+          echo REM Copy service files
+          echo copy "PS5CameraService.exe" "%%PROGRAMFILES%%\PS5CameraService\"
+          echo copy "firmware_discord_and_gamma_fix.bin" "%%PROGRAMFILES%%\PS5CameraService\"
+          echo.
+          echo REM Install Windows Service
+          echo sc create PS5CameraService binPath= "\"%%PROGRAMFILES%%\PS5CameraService\PS5CameraService.exe\"" start= auto DisplayName= "PS5 Camera Auto-Loader"
+          echo.
+          echo REM Start service
+          echo sc start PS5CameraService
+          echo.
+          echo echo Service installed and started successfully!
+          echo echo PS5 Camera will now automatically load firmware when connected.
+          echo pause
+          ) > build\release-package\install.bat
+
+      - name: Create uninstall.bat
+        shell: cmd
+        run: |
+          (
+          echo @echo off
+          echo echo Uninstalling PS5 Camera Auto-Loader Service...
+          echo.
+          echo REM Check for admin rights
+          echo net session ^>nul 2^>^&1
+          echo if %%errorLevel%% == 0 ^(
+          echo     echo Administrative privileges confirmed.
+          echo ^) else ^(
+          echo     echo This uninstaller requires administrative privileges.
+          echo     echo Please run as administrator.
+          echo     pause
+          echo     exit /b 1
+          echo ^)
+          echo.
+          echo REM Stop and delete service
+          echo sc stop PS5CameraService
+          echo sc delete PS5CameraService
+          echo.
+          echo REM Remove service directory
+          echo rmdir /s /q "%%PROGRAMFILES%%\PS5CameraService"
+          echo.
+          echo echo Service uninstalled successfully!
+          echo pause
+          ) > build\release-package\uninstall.bat
+
+      - name: Create README.md
+        shell: cmd
+        run: |
+          (
+          echo # PS5 Camera Auto-Loader Service
+          echo.
+          echo This service automatically loads firmware to PS5 cameras when connected to Windows.
+          echo.
+          echo ## Installation
+          echo 1. Right-click `install.bat` and select "Run as administrator"
+          echo 2. The service will be installed and started automatically
+          echo.
+          echo ## Usage
+          echo - Simply connect your PS5 camera to USB
+          echo - The firmware will be uploaded automatically
+          echo - No user interaction required
+          echo.
+          echo ## Uninstallation
+          echo - Right-click `uninstall.bat` and select "Run as administrator"
+          echo.
+          echo ## Testing
+          echo - Use `PS5CameraLoader.exe` to manually test firmware loading
+          echo - Use `PS5CameraService.exe --console` to test service in console mode
+          ) > build\release-package\README.md
+
+      - name: List build artifacts
+        run: dir build\release-package
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS5CameraService-Windows
+          path: |
+            build/release-package/PS5CameraService.exe
+            build/release-package/PS5CameraLoader.exe
+            build/release-package/firmware_discord_and_gamma_fix.bin
+            build/release-package/install.bat
+            build/release-package/uninstall.bat
+            build/release-package/README.md
+
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/release-package/PS5CameraService.exe
+            build/release-package/PS5CameraLoader.exe
+            build/release-package/firmware_discord_and_gamma_fix.bin
+            build/release-package/install.bat
+            build/release-package/uninstall.bat
+            build/release-package/README.md
+          body: |
+            ## PS5 Camera Auto-Loader Service
+
+            Automatically loads firmware to PS5 cameras when connected to Windows.
+
+            ### Installation
+            1. Download all files
+            2. Right-click `install.bat` and select "Run as administrator"
+            3. Connect your PS5 camera - firmware will load automatically
+
+            ### Files
+            - `PS5CameraService.exe` - Windows Service executable
+            - `PS5CameraLoader.exe` - Manual firmware loader (for testing)
+            - `firmware_discord_and_gamma_fix.bin` - PS5 camera firmware
+            - `install.bat` - Service installer script
+            - `uninstall.bat` - Service uninstaller script
+            - `README.md` - Documentation
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
