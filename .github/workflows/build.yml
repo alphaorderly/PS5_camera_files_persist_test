@@ -40,46 +40,7 @@ jobs:
           copy "PS5CameraService.exe" "build\release-package\"
           copy "PS5CameraLoader.exe" "build\release-package\"
           copy "firmware_discord_and_gamma_fix.bin" "build\release-package\"
-
-      - name: Create install.bat
-        shell: cmd
-        run: |
-          (
-          echo @echo off
-          echo echo Installing PS5 Camera Auto-Loader Service...
-          echo.
-          echo REM Check for admin rights
-          echo net session ^>nul 2^>^&1
-          echo if %%errorLevel%% == 0 ^(
-          echo     echo Administrative privileges confirmed.
-          echo ^) else ^(
-          echo     echo This installer requires administrative privileges.
-          echo     echo Please run as administrator.
-          echo     pause
-          echo     exit /b 1
-          echo ^)
-          echo.
-          echo REM Stop existing service if running
-          echo sc stop PS5CameraService ^>nul 2^>^&1
-          echo sc delete PS5CameraService ^>nul 2^>^&1
-          echo.
-          echo REM Create service directory
-          echo mkdir "%%PROGRAMFILES%%\PS5CameraService" 2^>nul
-          echo.
-          echo REM Copy service files
-          echo copy "PS5CameraService.exe" "%%PROGRAMFILES%%\PS5CameraService\"
-          echo copy "firmware_discord_and_gamma_fix.bin" "%%PROGRAMFILES%%\PS5CameraService\"
-          echo.
-          echo REM Install Windows Service
-          echo sc create PS5CameraService binPath= "\"%%PROGRAMFILES%%\PS5CameraService\PS5CameraService.exe\"" start= auto DisplayName= "PS5 Camera Auto-Loader"
-          echo.
-          echo REM Start service
-          echo sc start PS5CameraService
-          echo.
-          echo echo Service installed and started successfully!
-          echo echo PS5 Camera will now automatically load firmware when connected.
-          echo pause
-          ) > build\release-package\install.bat
+          copy "install.bat" "build\release-package\"
 
       - name: Create uninstall.bat
         shell: cmd

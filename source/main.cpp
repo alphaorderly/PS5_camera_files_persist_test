@@ -8,12 +8,15 @@ using namespace orbiseye;
 
 std::string getCurrentFirmwarePath()
 {
-	char buff[FILENAME_MAX];
-	_getcwd(buff, FILENAME_MAX);
-	std::string currentDir(buff);
+	char moduleFileName[MAX_PATH];
+	GetModuleFileNameA(NULL, moduleFileName, MAX_PATH);
 	
-	 currentDir.append(std::string("\\firmware_discord_and_gamma_fix.bin"));
-	 return currentDir;
+	std::string executablePath(moduleFileName);
+	size_t lastSlash = executablePath.find_last_of("\\");
+	std::string executableDir = executablePath.substr(0, lastSlash + 1);
+	
+	executableDir.append("firmware_discord_and_gamma_fix.bin");
+	return executableDir;
 }
 
 LONG __cdecl
